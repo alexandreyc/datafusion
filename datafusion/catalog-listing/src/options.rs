@@ -17,7 +17,7 @@
 
 use arrow::datatypes::{DataType, SchemaRef};
 use datafusion_catalog::Session;
-use datafusion_common::plan_err;
+use datafusion_common::{exec_err, plan_err};
 use datafusion_datasource::ListingTableUrl;
 use datafusion_datasource::file_format::FileFormat;
 use datafusion_execution::config::SessionConfig;
@@ -282,6 +282,12 @@ impl ListingOptions {
             .try_filter(|object_meta| future::ready(object_meta.size > 0))
             .try_collect()
             .await?;
+
+        if files.is_empty() {
+            return exec_err!(
+                "No files found at {table_path} for performing schema inference"
+            );
+        }
 
         let schema = self.format.infer_schema(state, &store, &files).await?;
 
